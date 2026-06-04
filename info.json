@@ -1,0 +1,7 @@
+{
+    "participants": ["Luis"],
+    "social": ["https://github.com/BGLuis"],
+    "source-code-repo": "https://github.com/BGLuis/rinha-2026-pure-rust",
+    "stack": ["Rust", "SIMD (AVX2)"],
+    "open_to_work": true
+}

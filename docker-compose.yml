@@ -1,5 +1,5 @@
 x-api-common: &api-common
-  build: .
+  image: luiis001/rinha-pure-rust-api:latest
   volumes:
     - shared_sockets:/tmp/sockets
     - shared_dataset:/shared
@@ -20,9 +20,7 @@ x-api-common: &api-common
 
 services:
   lb:
-    build:
-      context: .
-      dockerfile: Dockerfile.lb
+    image: luiis001/rinha-pure-rust-lb:latest
     restart: always
     environment:
       - PORT=9999
@@ -66,27 +64,6 @@ services:
       - SHARED_DATASET_PATH=/shared/dataset.bin
       - GOMEMLIMIT=130MiB
       - GOGC=1000
-
-#   warmup:
-#     image: grafana/k6:latest
-#     entrypoint: ["/bin/sh", "/warmup.sh"]
-#     environment:
-#       - BASE_URL=http://lb:9999
-#       - READY_RETRIES=240
-#       - READY_SLEEP=0.25
-#     volumes:
-#       - ./scripts/warmup.sh:/warmup.sh:ro
-#       - ./test:/test:ro
-#     depends_on:
-#       - lb
-#     networks:
-#       - rinha-net
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: "0.10"
-#           memory: "50M"
-#     restart: "no"
 
 volumes:
   shared_sockets:
