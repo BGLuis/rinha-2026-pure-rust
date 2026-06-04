@@ -143,19 +143,19 @@ fn load_config() -> Config {
     // if the files are mostly static. To be safe, we parse. But since I can't use serde_json easily without adding it... 
     // Actually, I can use the same `parse_float_fast` to parse the normalization.json.
     let mut cfg = Config {
-        max_amount: 10000.0,
-        max_installments: 12.0,
-        amount_vs_avg_ratio: 10.0,
-        max_minutes: 10000.0,
-        max_km: 10000.0,
-        max_tx_count_24h: 20.0,
-        max_merchant_avg_amount: 10000.0,
+        max_amount: 1.0 / 10000.0,
+        max_installments: 1.0 / 12.0,
+        amount_vs_avg_ratio: 1.0 / 10.0,
+        max_minutes: 1.0 / 10000.0,
+        max_km: 1.0 / 10000.0,
+        max_tx_count_24h: 1.0 / 20.0,
+        max_merchant_avg_amount: 1.0 / 10000.0,
         mcc_risk_arr: [0.5; 10000],
     };
     
     if let Ok(data) = std::fs::read_to_string("../../resources/normalization.json").or_else(|_| std::fs::read_to_string("resources/normalization.json")) {
         let d = data.as_bytes();
-        let get = |k: &[u8]| -> f64 { let idx = find_direct(d, k); if idx >= 0 { parse_float_fast(d, idx as usize).0 } else { 0.0 } };
+        let get = |k: &[u8]| -> f64 { let idx = find_direct(d, k); if idx >= 0 { 1.0 / parse_float_fast(d, idx as usize).0 } else { 1.0 } };
         cfg.max_amount = get(b"\"max_amount\"");
         cfg.max_installments = get(b"\"max_installments\"");
         cfg.amount_vs_avg_ratio = get(b"\"amount_vs_avg_ratio\"");
@@ -249,10 +249,10 @@ fn fast_vectorize(body: &[u8], cfg: &Config, q: &mut [f32; 14]) {
     let mut req_wk = (days + 3) % 7;
     if req_wk < 0 { req_wk += 7; }
 
-    q[0] = clamp(amt / cfg.max_amount);
-    q[1] = clamp((inst as f64) / cfg.max_installments);
+    q[0] = clamp(amt * cfg.max_amount);
+    q[1] = clamp((inst as f64) * cfg.max_installments);
     if c_avg_amt > 0.0 {
-        q[2] = clamp((amt / c_avg_amt) / cfg.amount_vs_avg_ratio);
+        q[2] = clamp((amt / c_avg_amt) * cfg.amount_vs_avg_ratio);
     } else {
         q[2] = 1.0;
     }
@@ -265,12 +265,12 @@ fn fast_vectorize(body: &[u8], cfg: &Config, q: &mut [f32; 14]) {
     } else {
         let last_unix = fast_parse_time_str(last_ts);
         let mins = (req_unix - last_unix) as f64 / 60.0;
-        q[5] = clamp(mins / cfg.max_minutes);
-        q[6] = clamp(km_last / cfg.max_km);
+        q[5] = clamp(mins * cfg.max_minutes);
+        q[6] = clamp(km_last * cfg.max_km);
     }
 
-    q[7] = clamp(km_home / cfg.max_km);
-    q[8] = clamp((tx_count as f64) / cfg.max_tx_count_24h);
+    q[7] = clamp(km_home * cfg.max_km);
+    q[8] = clamp((tx_count as f64) * cfg.max_tx_count_24h);
     q[9] = if is_online { 1.0 } else { 0.0 };
     q[10] = if card_pres { 1.0 } else { 0.0 };
     q[11] = if !known { 1.0 } else { 0.0 };
@@ -286,7 +286,7 @@ fn fast_vectorize(body: &[u8], cfg: &Config, q: &mut [f32; 14]) {
     } else {
         q[12] = 0.5;
     }
-    q[13] = clamp(m_avg_amt / cfg.max_merchant_avg_amount);
+    q[13] = clamp(m_avg_amt * cfg.max_merchant_avg_amount);
 }
 
 fn main() {
